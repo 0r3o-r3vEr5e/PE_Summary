@@ -53,7 +53,7 @@ typedef struct _IMAGE_FILE_HEADER {
 ```
 Structure này có 7 thành phần:
 * **Machine**: đây là số biểu thị kiểu máy (CPU Architecture) mà file thực thi nhắm đến. Trường thông tin này có nhiều giá trị thực tế nhưng ta chỉ quan tâm 2 giá trị: `0x8864` cho `AMD64` và `0x14c` cho `i386`. Danh sách các giá trị cụ thể có thể tìm ở [official Microsoft documentation](https://docs.microsoft.com/en-us/windows/win32/debug/pe-format).
-* **NumberOfSections**: Trường thông tin này giữ số lượng sections (hoặc là số lượng section headers aka[^1] kích thước của section table).
+* **NumberOfSections**: Trường thông tin này giữ số lượng sections (hoặc là số lượng section headers aka kích thước của section table).
 * TimeDateStamp: Một `unix` timestamp thể hiện file được tạo khi nào
 * PointerToSymbolTable và NumberOfSymbols: 2 trường thông tin này giữ offset của file chỉ đến COFF symbol table và số lượng entry trong symbol table đó. Tuy nhiên chúng được đặt giá trị là `0` có nghĩa là không có COFF symbol table. Điều này được thực hiện là do thông tin COFF debugging không được dùng nữa.
 * SizeOfOptionalHeader: kích thước của Optional Header.
@@ -166,7 +166,7 @@ typedef struct _IMAGE_OPTIONAL_HEADER64 {
 * **Magic**: Tài liệu Microsoft mô tả trường thông tin này là một số nguyên định danh trạng thái của image, có 3 giá trị phổ biến:
   * **0x10B**: định danh image là file thực thi `PE32`
   * **0x20B**: định danh image là file thực thi `PE32+`
-  * **0x107**: định danh image là image ROM[^2] 
+  * **0x107**: định danh image là image ROM[^1] 
   Giá trị của trường thông tin này là cái để xác định file thực thi là 32-bit hay 64-bit, Windows PE loader bỏ qua trường thông tin`IMAGE_FILE_HEADER.Machine`.
 * **MajorLinkerVersion** và **MinorLinkerVersion**: Linker đến số phiên bản major và minor
 * **SizeOfCode**: Trường thông tin này giữ kích thước của code section (`.text`), hay tổng số của tất cả code sections nếu như có nhiều sections.
@@ -175,7 +175,7 @@ typedef struct _IMAGE_OPTIONAL_HEADER64 {
 * **AddressOfEntryPoint**: địa chỉ RVA của entry point khi file được load vào memory. Documentation nêu rõ rằng đối với program images, địa chỉ tương đối này trỏ đến địa chỉ bắt đầu và với drivers thiết bị nó trỏ đến hàn khởi tạo. Đối với DLLs thì entry point là một thông tin optional và trong trường hợp không có entry point thì trường `AddressOfEntryPoint` được đặt là `0`. 
 * **BaseOfCode**: một địa chỉ RVA của phần bắt đầu của code section khi file được load vào memory.
 * **BaseOfData (PE32 Only)**: một địa chỉ RVA của phần bắt đầu của data section khi file được load vào memory.
-* **ImageBase**: Trường thông tin này chứa địa chỉ ưu tiên của byte đầu tiền của image khi được load vào memory, giá trị này phải là bội số của 64K. Vì các biện pháp bảo vệ memory như ASLR và rất nhiều lý do khác, địa chỉ được chỉ định bởi trường thông tin này không được sử dụng. Trong trường hợp này, PE loader chọn một khoảng memory chưa được sử dụng để load image vào, sau khi load vào địa chỉ đó, loader sẽ thực hiện một process gọi là relocating - sửa các constant address[^3] ở trong image để hoạt động với image base mới. Có một section chứa thông tin về các vị trí sẽ cần phải sửa nếu như cần relocation, section này là relocation section (`.reloc`), ta sẽ tìm hiểu thêm trong bài viết sau. 
+* **ImageBase**: Trường thông tin này chứa địa chỉ ưu tiên của byte đầu tiền của image khi được load vào memory, giá trị này phải là bội số của 64K. Vì các biện pháp bảo vệ memory như ASLR và rất nhiều lý do khác, địa chỉ được chỉ định bởi trường thông tin này không được sử dụng. Trong trường hợp này, PE loader chọn một khoảng memory chưa được sử dụng để load image vào, sau khi load vào địa chỉ đó, loader sẽ thực hiện một process gọi là relocating - sửa các constant address[^2] ở trong image để hoạt động với image base mới. Có một section chứa thông tin về các vị trí sẽ cần phải sửa nếu như cần relocation, section này là relocation section (`.reloc`), ta sẽ tìm hiểu thêm trong bài viết sau. 
 * **SectionAlignment**: Trường này chứa giá trị được dùng để căn chỉnh section ở trong memory (tính bằng bytes), các section được căn chỉnh trong ranh giới bộ nhớ là bội số của giá trị này. Documentation nêu rõ rằng giá trị mặc định này là kích thước của page cho kiến trúc và nó không thể nhỏ hơn giá trị của `FileAlignment`.
 * **FileAlignment**: Tương tự với `SectionAlignment`, trường này chứa giá trị mà được sử dụng việc căn chỉnh data raw **trên ổ cứng** (tính bằng bytes). Nếu kích thước của data thực tế trong một section nhỏ hơn giá trị `FileAlignment`, phần còn lại của chunk sẽ được đệm bằng `00` để giữ ranh giới căn chỉnh. Documentation nêu rõ rằng giá trị này nên là lũy thừa ủa 2 trong khoảng từ 512 đến 64KB và nếu giá trị của `SectionAlignment` nhỏ hơn kích thước page của kiến trúc thì kích thước của `FileAlignment` và `SectionAlignment` phải khớp nhau.
 * **MajorOperatingSystemVersion, MinorOperatingSystemVersion, MajorImageVersion, MinorImageVersion, MajorSubsystemVersion và MinorSubsystemVersion**: Những trường thông tin này của structure theo thứ tự chỉ định số phiên bản chính của hệ điều hành được yêu cầu, số phiên bản phụ của hệ điều hành được yêu cầu, số phiên bản chính của file image, số phiên bản phụ của file image, số phiên bản chính của subsystem và số phiên bản phụ của subsystem.
@@ -213,3 +213,6 @@ Thực chất nội dung của optional header còn có `DataDirectory` nhưng m
 
 Tổng kết lại, chúng ta đã tìm hiểu về cấu trúc của NT Headers và tìm hiểu chi tiết về cấu trúc của File Header và Optional Header.
 Bài viết tới sẽ nói về Data Directories, Section Headers và các section.
+
+[^1]: Read Only Memory
+[^2]: Địa chỉ cố định
