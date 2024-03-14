@@ -5,6 +5,7 @@ This is a Vietnamese translation of [0xRick's Blog](https://0xrick.github.io/win
 # Phần 1: Tổng quan
 
 **Giới thiệu**
+
 Mục tiêu của post này là giới thiệu cơ bản về cấu trúc file PE một cách tổng quan nhất
 
 ---
